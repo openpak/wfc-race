@@ -1,0 +1,6 @@
+.env
+/config.xml
+/state/
+/logs/
+*.log
+/wfc-race

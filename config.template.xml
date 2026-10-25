@@ -1,0 +1,35 @@
+<Config>
+     <gsAddress>0.0.0.0</gsAddress>
+     <nasAddress>0.0.0.0</nasAddress>
+     <nasPort>@NAS_PORT@</nasPort>
+     <nasAddressHttps>127.0.0.1</nasAddressHttps>
+     <nasPortHttps>20443</nasPortHttps>
+     <enableHttps>false</enableHttps>
+     <payloadServerAddress></payloadServerAddress>
+     <frontendAddress>127.0.0.1:29998</frontendAddress>
+     <frontendBackendAddress>127.0.0.1:29999</frontendBackendAddress>
+     <backendAddress>127.0.0.1:29999</backendAddress>
+     <backendFrontendAddress>127.0.0.1:29998</backendFrontendAddress>
+     <certPath>fullchain.pem</certPath>
+     <keyPath>privkey.pem</keyPath>
+     <enableHttpsExploitWii>false</enableHttpsExploitWii>
+     <enableHttpsExploitDS>false</enableHttpsExploitDS>
+     <certDerPathWii>naswii-cert.der</certDerPathWii>
+     <keyPathWii>naswii-key.pem</keyPathWii>
+     <certDerPathDS>nas-cert.der</certDerPathDS>
+     <wiiCertDerPathDS>nwc.der</wiiCertDerPathDS>
+     <keyPathDS>nas-key.pem</keyPathDS>
+     <allowDefaultDolphinKeys>true</allowDefaultDolphinKeys>
+     <username>@DB_USER@</username>
+     <password>@DB_PASSWORD@</password>
+     <databaseAddress>@DB_ADDRESS@</databaseAddress>
+     <databaseName>@DB_NAME@</databaseName>
+     <logLevel>@LOG_LEVEL@</logLevel>
+     <logOutput>StdOut</logOutput>
+     <apiSecret>@API_SECRET@</apiSecret>
+     <coreAddress>@CORE_ADDRESS@</coreAddress>
+     <coreKey>@CORE_KEY@</coreKey>
+     <eventReporting>
+          <logToDatabase>true</logToDatabase>
+     </eventReporting>
+</Config>
