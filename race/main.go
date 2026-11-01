@@ -26,4 +26,5 @@ func Shutdown() {
 
 func RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST /RaceService/NintendoRacingService.asmx", handleNintendoRacingServiceRequest)
+	mux.HandleFunc("GET /api/mkw/leaderboard", handleLeaderboardJSON)
 }
