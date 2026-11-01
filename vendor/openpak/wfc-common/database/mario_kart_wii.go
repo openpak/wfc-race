@@ -2,6 +2,7 @@ package database
 
 import (
 	"openpak/wfc-common/common"
+	"openpak/wfc-common/logging"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -128,8 +129,19 @@ func (c *Connection) GetMarioKartWiiGhostFile(courseId common.MarioKartWiiCourse
 func (c *Connection) InsertMarioKartWiiGhostFile(regionId common.MarioKartWiiLeaderboardRegionId,
 	courseId common.MarioKartWiiCourseId, score int, pid int, playerInfo string, ghost []byte) error {
 	_, err := c.pool.Exec(c.ctx, insertGhostFileStatement, regionId, courseId, score, pid, playerInfo, ghost)
+	if err != nil {
+		return err
+	}
 
-	return err
+	// Keep every upload with its header metadata for the read API. The game never reads this
+	// copy, so a failure here must not fail the upload.
+	if len(ghost) > 0 {
+		if aerr := c.archiveGhost(int(courseId), pid, ghost); aerr != nil {
+			logging.Error("DB", "archive Mario Kart Wii ghost:", aerr)
+		}
+	}
+
+	return nil
 }
 
 // Mario Kart Wii friend info functions for API compatibility

@@ -1,5 +1,7 @@
 package database
 
+import "openpak/wfc-common/logging"
+
 func (c *Connection) UpdateTables() {
 	_, _ = c.pool.Exec(c.ctx, `
 
@@ -36,4 +38,8 @@ func (c *Connection) UpdateTables() {
 		ADD IF NOT EXISTS upload_time timestamp without time zone;
 	
 	`)
+
+	if err := c.EnsureMarioKartWiiGhostArchive(); err != nil {
+		logging.Error("DB", "ghost archive:", err)
+	}
 }

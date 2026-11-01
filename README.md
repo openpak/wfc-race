@@ -17,6 +17,7 @@ OpenPak's Wii/DS Race Server.
 | --- | --- |
 | `GET /healthz` | Health check, unauthenticated |
 | `GET /api/mkw/leaderboard?region=&course=` | JSON top ten of one Mario Kart Wii course (`region` 0-7, default 0 worldwide; `course` 0-31): `{region, course, entries:[{rank, pid, time_ms, name}]}`; read by the website; needs `WFC_INTERNAL_KEY` |
+| `GET /api/mkw/v1/...` | Read API for the OpenKart site: courses, rankings, ghosts, ghost downloads, player and console-user rankings, competitions; needs `WFC_INTERNAL_KEY`; see [read API](docs/read-api.md) |
 | Protocol and internal paths | Require `WFC_INTERNAL_KEY` |
 | Console HTTP | Reaches this service through `wfc-nas` |
 
@@ -30,6 +31,8 @@ docker build -t wfc-race .
 
 ## Docs
 
+- [Read API](docs/read-api.md)
+- [Changelog](CHANGELOG.md)
 - [Protocol](docs/protocol.md)
 - [Evidence](docs/evidence.md)
 - [Deploy](docs/deploy.md)
