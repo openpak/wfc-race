@@ -25,9 +25,9 @@ func (f fakeRanks) Rankings(_ context.Context, region, course, limit, offset int
 	return out, len(all), nil
 }
 
-func (f fakeRanks) RankOf(_ context.Context, region, course int, pid int64) (int, bool, error) {
+func (f fakeRanks) RankOfUser(_ context.Context, region, course int, user int64) (int, bool, error) {
 	for i, r := range f.rows[boardID(region, course)] {
-		if r.PID == pid {
+		if r.UserID == user {
 			return i + 1, true, nil
 		}
 	}
@@ -37,18 +37,19 @@ func (f fakeRanks) RankOf(_ context.Context, region, course int, pid int64) (int
 func testRanks() fakeRanks {
 	var rows []database.MKWRankRow
 	for i := 0; i < 30; i++ {
-		rows = append(rows, database.MKWRankRow{PID: int64(1000 + i), Score: 60000 + i*100, Updated: time.Unix(1700000000, 0)})
+		rows = append(rows, database.MKWRankRow{PID: int64(500 + i), UserID: int64(1000 + i), Score: 60000 + i*100, Updated: time.Unix(1700000000, 0)})
 	}
-	return fakeRanks{rows: map[string][]database.MKWRankRow{"0": rows, "3-0": rows[:4]}}
+	rows[7].UserID = 0
+	return fakeRanks{rows: map[string][]database.MKWRankRow{"0": rows}}
 }
 
 func TestBoards(t *testing.T) {
 	b, _ := newRankingSource(testRanks()).Boards(context.Background())
-	if len(b) != 8*32 || b[0].ID != "0" || b[0].Name != "Mario Circuit" || b[31].ID != "31" || b[32].ID != "1-0" {
-		t.Fatalf("boards: %d %+v %+v", len(b), b[0], b[32])
+	if len(b) != 32 || b[0].ID != "0" || b[0].Name != "Mario Circuit" || b[31].ID != "31" || b[31].Name != "GBA Shy Guy Beach" {
+		t.Fatalf("boards: %d %+v %+v", len(b), b[0], b[31])
 	}
-	if b[32+0].Name != "Mario Circuit (Japan)" || b[0].Kind != "time" || b[0].Order != "asc" {
-		t.Fatalf("names: %+v", b[32])
+	if b[0].Kind != "time" || b[0].Order != "asc" || b[0].Unit != "ms" {
+		t.Fatalf("kind: %+v", b[0])
 	}
 }
 
@@ -67,10 +68,11 @@ func TestRowsJSON(t *testing.T) {
 		t.Fatalf("around: %+v", p.Around)
 	}
 	rec = httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/internal/rankings/boards/3-0?around=1001", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/internal/rankings/boards/0?limit=10&offset=5", nil))
+	p = rankingsapi.Page{}
 	json.Unmarshal(rec.Body.Bytes(), &p)
-	if p.Total != 4 || len(p.Around) != 4 {
-		t.Fatalf("region: %+v", p)
+	if p.Rows[2].Rank != 8 || p.Rows[2].PID != "" {
+		t.Fatalf("a profile with no console must have no pid: %+v", p.Rows[2])
 	}
 }
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.1
+
+- Rankings contract: rows carry `pid` = the console id (`users.user_id`), the subject the account core links
+  a Wii under, so the website can name the player; a profile whose console is gone has no `pid`. The
+  `around` parameter takes that console id. Boards are the 32 worldwide courses only (the per-region
+  tables stay on `/api/mkw/v1`). Requires wfc-common v0.2.2.
+
 ## v0.4.0
 
 - Rankings contract (`/internal/rankings/boards`, `/boards/{id}`) over the Mario Kart Wii time-trial

@@ -4,28 +4,25 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"openpak/wfc-common/common"
 	"openpak/wfc-common/database"
 	"openpak/wfc-race/internal/rankingsapi"
 )
 
-// The rankings contract over the Mario Kart Wii time-trial table (mario_kart_wii_sake): one board
-// per course, worldwide, then the same course per region. Board ids are "<course>" for the
-// worldwide board and "<region>-<course>" for a region (region 1-7, course 0-31). Rows carry
-// pid, the GameSpy profile id (users.profile_id) that wfc-sake keys the table by; the console
-// user id (users.user_id) is a different number and is not sent.
-
-var mkwRegionNames = [...]string{"Worldwide", "Japan", "United States", "Europe", "Australia", "Taiwan", "Korea", "China"}
+// The rankings contract over the Mario Kart Wii time-trial table (mario_kart_wii_sake): one
+// worldwide board per course, id = the course number (0-31). Rows carry pid = users.user_id, the
+// console the profile belongs to: it is the subject the account core links a Wii under (namespace
+// "wfc"), which is how the website finds the player's name. A profile whose console is gone has
+// no pid and shows as "Player". The per-region boards stay on the older /api/mkw/v1 API.
 
 type rankStore interface {
 	Rankings(ctx context.Context, region, course, limit, offset int) ([]database.MKWRankRow, int, error)
-	RankOf(ctx context.Context, region, course int, pid int64) (int, bool, error)
+	RankOfUser(ctx context.Context, region, course int, userID int64) (int, bool, error)
 }
 
-func (s dbStore) RankOf(ctx context.Context, region, course int, pid int64) (int, bool, error) {
-	return s.c.MKWRankOf(ctx, region, course, pid)
+func (s dbStore) RankOfUser(ctx context.Context, region, course int, userID int64) (int, bool, error) {
+	return s.c.MKWRankOfUser(ctx, region, course, userID)
 }
 
 type rankingSource struct{ store rankStore }
@@ -46,36 +43,21 @@ func courseName(course int) string {
 	return rankingsapi.NeutralName(uint64(course))
 }
 
-func boardName(region, course int) string {
-	if region == common.Worldwide {
-		return courseName(course)
+func parseBoard(id string) (course int, ok bool) {
+	course, err := strconv.Atoi(id)
+	if err != nil || !common.MarioKartWiiCourseId(course).IsValid() {
+		return 0, false
 	}
-	return courseName(course) + " (" + mkwRegionNames[region] + ")"
-}
-
-func parseBoard(id string) (region, course int, ok bool) {
-	r, c, found := strings.Cut(id, "-")
-	if !found {
-		r, c = "0", id
-	}
-	region, err1 := strconv.Atoi(r)
-	course, err2 := strconv.Atoi(c)
-	if err1 != nil || err2 != nil || (found && region == common.Worldwide) ||
-		!common.MarioKartWiiLeaderboardRegionId(region).IsValid() || !common.MarioKartWiiCourseId(course).IsValid() {
-		return 0, 0, false
-	}
-	return region, course, true
+	return course, true
 }
 
 func (rankingSource) Boards(context.Context) ([]rankingsapi.Board, error) {
 	var boards []rankingsapi.Board
-	for region := common.Worldwide; region <= common.China; region++ {
-		for course := common.MarioCircuit; course <= common.GBAShyGuyBeach; course++ {
-			boards = append(boards, rankingsapi.Board{
-				ID: boardID(region, course), Name: boardName(region, course),
-				Kind: rankingsapi.KindTime, Order: rankingsapi.OrderAsc, Unit: "ms",
-			})
-		}
+	for course := common.MarioCircuit; course <= common.GBAShyGuyBeach; course++ {
+		boards = append(boards, rankingsapi.Board{
+			ID: boardID(common.Worldwide, course), Name: courseName(course),
+			Kind: rankingsapi.KindTime, Order: rankingsapi.OrderAsc, Unit: "ms",
+		})
 	}
 	return boards, nil
 }
@@ -83,8 +65,12 @@ func (rankingSource) Boards(context.Context) ([]rankingsapi.Board, error) {
 func toRows(rows []database.MKWRankRow) []rankingsapi.Row {
 	out := make([]rankingsapi.Row, 0, len(rows))
 	for _, r := range rows {
+		pid := ""
+		if r.UserID != 0 {
+			pid = strconv.FormatInt(r.UserID, 10)
+		}
 		out = append(out, rankingsapi.Row{
-			Rank: r.Rank, PID: strconv.FormatInt(r.PID, 10), Score: int64(r.Score),
+			Rank: r.Rank, PID: pid, Score: int64(r.Score),
 			Display: rankingsapi.Time(int64(r.Score)), UpdatedAt: r.Updated.UTC(),
 		})
 	}
@@ -92,17 +78,18 @@ func toRows(rows []database.MKWRankRow) []rankingsapi.Row {
 }
 
 func (s rankingSource) Rows(ctx context.Context, id string, q rankingsapi.Query) (rankingsapi.Page, error) {
-	region, course, ok := parseBoard(id)
+	course, ok := parseBoard(id)
 	if !ok {
 		return rankingsapi.Page{}, rankingsapi.ErrNoBoard
 	}
+	const region = common.Worldwide
 	rows, total, err := s.store.Rankings(ctx, region, course, q.Limit, q.Offset)
 	if err != nil {
 		return rankingsapi.Page{}, err
 	}
 	p := rankingsapi.Page{Total: total, Rows: toRows(rows)}
-	if pid, err := strconv.ParseInt(q.Around, 10, 64); err == nil && q.Around != "" {
-		rank, ranked, err := s.store.RankOf(ctx, region, course, pid)
+	if user, err := strconv.ParseInt(q.Around, 10, 64); err == nil && q.Around != "" {
+		rank, ranked, err := s.store.RankOfUser(ctx, region, course, user)
 		if err != nil {
 			return rankingsapi.Page{}, err
 		}

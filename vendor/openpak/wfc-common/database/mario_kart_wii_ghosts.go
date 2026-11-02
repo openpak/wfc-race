@@ -149,6 +149,7 @@ type MKWGhostRow struct {
 type MKWRankRow struct {
 	Rank       int
 	PID        int64
+	UserID     int64 // the console the profile belongs to (users.user_id), 0 when the profile is gone
 	Score      int
 	Region     int
 	PlayerInfo string
@@ -202,11 +203,12 @@ func (c *Connection) MKWRankings(ctx context.Context, region, course, limit, off
 		region, course).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := c.pool.Query(ctx, `SELECT score, pid, regionid, playerinfo, COALESCE(upload_time, 'epoch'::timestamp),
+	rows, err := c.pool.Query(ctx, `SELECT s.score, s.pid, COALESCE(u.user_id, 0), s.regionid, s.playerinfo, COALESCE(s.upload_time, 'epoch'::timestamp),
 		(SELECT g.id FROM mario_kart_wii_ghosts g WHERE g.courseid = s.courseid AND g.pid = s.pid AND g.score = s.score
 			ORDER BY g.id DESC LIMIT 1)
-		FROM mario_kart_wii_sake s WHERE ($1 = 0 OR regionid = $1) AND courseid = $2
-		ORDER BY score ASC, upload_time ASC NULLS FIRST, pid ASC LIMIT $3 OFFSET $4`, region, course, limit, offset)
+		FROM mario_kart_wii_sake s LEFT JOIN users u ON u.profile_id = s.pid
+		WHERE ($1 = 0 OR s.regionid = $1) AND s.courseid = $2
+		ORDER BY s.score ASC, s.upload_time ASC NULLS FIRST, s.pid ASC LIMIT $3 OFFSET $4`, region, course, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -214,7 +216,7 @@ func (c *Connection) MKWRankings(ctx context.Context, region, course, limit, off
 	out := []MKWRankRow{}
 	for rows.Next() {
 		r := MKWRankRow{Rank: offset + len(out) + 1}
-		if err := rows.Scan(&r.Score, &r.PID, &r.Region, &r.PlayerInfo, &r.Updated, &r.GhostID); err != nil {
+		if err := rows.Scan(&r.Score, &r.PID, &r.UserID, &r.Region, &r.PlayerInfo, &r.Updated, &r.GhostID); err != nil {
 			return nil, 0, err
 		}
 		out = append(out, r)
@@ -364,4 +366,18 @@ func (c *Connection) MKWContests(ctx context.Context, limit, offset int) ([]MKWC
 		out = append(out, r)
 	}
 	return out, total, rows.Err()
+}
+
+// MKWRankOfUser is MKWRankOf for a console: the best place any profile of the user holds on the
+// board, in MKWRankings' order.
+func (c *Connection) MKWRankOfUser(ctx context.Context, region, course int, userID int64) (int, bool, error) {
+	var rank int
+	err := c.pool.QueryRow(ctx, `SELECT min(rn) FROM (
+		SELECT pid, row_number() OVER (ORDER BY score ASC, upload_time ASC NULLS FIRST, pid ASC) rn
+		FROM mario_kart_wii_sake WHERE ($1 = 0 OR regionid = $1) AND courseid = $2) t
+		WHERE pid IN (SELECT profile_id FROM users WHERE user_id = $3)`, region, course, userID).Scan(&rank)
+	if err != nil {
+		return 0, false, nil // min() over nothing is NULL: not ranked
+	}
+	return rank, true, nil
 }
