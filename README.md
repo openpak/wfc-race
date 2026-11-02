@@ -34,7 +34,6 @@ docker build -t wfc-race .
 - [Read API](docs/read-api.md)
 - [Changelog](CHANGELOG.md)
 - [Protocol](docs/protocol.md)
-- [Evidence](docs/evidence.md)
 - [Deploy](docs/deploy.md)
 - [Notes](docs/notes.md)
 
