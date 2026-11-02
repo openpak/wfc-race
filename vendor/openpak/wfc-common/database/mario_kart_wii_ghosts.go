@@ -222,6 +222,20 @@ func (c *Connection) MKWRankings(ctx context.Context, region, course, limit, off
 	return out, total, rows.Err()
 }
 
+// MKWRankOf is the 1-based position of a profile on a course board (region 0 = worldwide) in
+// the same order MKWRankings uses, and false when the profile is not ranked there.
+func (c *Connection) MKWRankOf(ctx context.Context, region, course int, pid int64) (int, bool, error) {
+	var rank int
+	err := c.pool.QueryRow(ctx, `SELECT rn FROM (
+		SELECT pid, row_number() OVER (ORDER BY score ASC, upload_time ASC NULLS FIRST, pid ASC) rn
+		FROM mario_kart_wii_sake WHERE ($1 = 0 OR regionid = $1) AND courseid = $2) t WHERE pid = $3`,
+		region, course, pid).Scan(&rank)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return 0, false, nil
+	}
+	return rank, err == nil, err
+}
+
 // MKWCourseCounts counts ranked players and archived ghosts per course id below 32.
 func (c *Connection) MKWCourseCounts(ctx context.Context) ([]MKWCourseCount, error) {
 	rows, err := c.pool.Query(ctx, `SELECT c, COALESCE(r.n, 0), COALESCE(g.n, 0)

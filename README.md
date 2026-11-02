@@ -18,6 +18,7 @@ OpenPak's Wii/DS Race Server.
 | `GET /healthz` | Health check, unauthenticated |
 | `GET /api/mkw/leaderboard?region=&course=` | JSON top ten of one Mario Kart Wii course (`region` 0-7, default 0 worldwide; `course` 0-31): `{region, course, entries:[{rank, pid, time_ms, name}]}`; read by the website; needs `WFC_INTERNAL_KEY` |
 | `GET /api/mkw/v1/...` | Read API for the OpenKart site: courses, rankings, ghosts, ghost downloads, player and console-user rankings, competitions; needs `WFC_INTERNAL_KEY`; see [read API](docs/read-api.md) |
+| `GET /internal/rankings/boards`, `/boards/{id}` | Rankings contract on its own listener, off unless `RANKINGS_ADDR` is set (for example `:9090`, container network only, no key). Boards: one per course (`0`-`31`, worldwide) then per region (`<region>-<course>`, region 1-7); rows carry `pid`, the GameSpy profile id, network `wfc` |
 | Protocol and internal paths | Require `WFC_INTERNAL_KEY` |
 | Console HTTP | Reaches this service through `wfc-nas` |
 
