@@ -15,8 +15,35 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
+
+// Internal service-to-service polls (/internal/...) answer 2xx/3xx thousands of times a day; they are
+// counted and summarised once a minute instead of logged one by one. Failures still log individually.
+var (
+	pollCount atomic.Int64
+	pollOnce  sync.Once
+	// PollSummaryEvery is how often the poll summary is written.
+	PollSummaryEvery = time.Minute
+)
+
+func startPollSummary() {
+	pollOnce.Do(func() {
+		go func() {
+			for range time.Tick(PollSummaryEvery) {
+				flushPolls()
+			}
+		}()
+	})
+}
+
+func flushPolls() {
+	if n := pollCount.Swap(0); n > 0 {
+		log.Printf("internal poll: %d calls in last minute", n)
+	}
+}
 
 // Middleware logs one line per request after the handler returns. /healthz is skipped (probe noise).
 func Middleware(next http.Handler) http.Handler {
@@ -25,9 +52,14 @@ func Middleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		startPollSummary()
 		start := time.Now()
 		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		defer func() {
+			if strings.HasPrefix(r.URL.Path, "/internal/") && sw.status < 400 {
+				pollCount.Add(1)
+				return
+			}
 			log.Printf("http %s %s -> %d %dms", clean(r.Method), clean(r.URL.Path), sw.status, time.Since(start).Milliseconds())
 		}()
 		next.ServeHTTP(sw, r)
