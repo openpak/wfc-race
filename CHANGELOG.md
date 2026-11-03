@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.4.2 - 2026-11-03
+
+- Every HTTP request now logs one line to stderr, `http <method> <path> -> <status> <ms>ms` (path only, never the query, headers or bodies; `/healthz` skipped), through wfc-common v0.3.0 `httplog`.
+
 ## v0.4.1
 
 - Rankings contract: rows carry `pid` = the console id (`users.user_id`), the subject the account core links
