@@ -57,7 +57,7 @@ func handleLeaderboardJSON(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"region 0-7 and course 0-31 required"}`, http.StatusBadRequest)
 		return
 	}
-	rows, err := db.GetMarioKartWiiTopTenRankings(regionId, courseId)
+	rows, err := topTen(r.Context(), regionId, courseId)
 	if err != nil {
 		logging.Error("RACE", "leaderboard json:", err)
 		http.Error(w, `{"error":"database error"}`, http.StatusInternalServerError)

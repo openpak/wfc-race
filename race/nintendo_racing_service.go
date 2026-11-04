@@ -1,6 +1,7 @@
 package race
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/xml"
 	"io"
@@ -145,7 +146,7 @@ func handleGetTopTenRankingsRequest(moduleName string, responseWriter http.Respo
 		return
 	}
 
-	topTenRankings, err := db.GetMarioKartWiiTopTenRankings(regionId, courseId)
+	topTenRankings, err := topTen(context.Background(), regionId, courseId)
 	if err != nil {
 		logging.Error(moduleName, "Failed to get the Top 10 rankings:", err)
 		writeErrorResponse(raceServiceResultDatabaseError, responseWriter)

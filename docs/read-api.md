@@ -55,9 +55,10 @@ ghost body. `GET /tournaments` lists competition ids that have entries (newest f
 
 ## Where the data lives
 
-`mario_kart_wii_sake` (one best row per course and profile, what the game ranks) and
-`mario_kart_wii_ghosts` (every accepted upload with its RKG header metadata; see
-[wfc-common](https://github.com/openpak/wfc-common/blob/main/docs/mario-kart-wii-ghosts.md)). The schema is created
-and the existing ghosts are backfilled at start by wfc-race and wfc-sake.
+The times and their ranking live in the neutral leaderboards core (title `mario-kart-wii`, one board per
+course, see [wfc-common docs/leaderboards.md](https://github.com/openpak/wfc-common/blob/main/docs/leaderboards.md)); only
+consoles linked to an account are ranked. `mario_kart_wii_sake` (one row per course and profile) is the ghost-file
+store wfc-sake writes, and `mario_kart_wii_ghosts` keeps every accepted upload with its RKG header metadata. The
+archive schema is created and the existing ghosts backfilled at start by wfc-race and wfc-sake.
 
 Sources for the RKG header: Wiimm's RKG documentation, wiki.tockdom.com "RKG", WiiLink wfc-server docs (facts only).

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.0 - 2026-11-04
+
+- Rankings now come from the neutral leaderboards core (wfc-common v0.4.0 `mkwboard`): the SOAP `GetTopTenRankings`, the JSON top ten and the `/api/mkw/v1` read API (OpenKart) read the core; the JSON shapes are unchanged. Ghost files and the ghost archive stay in the WFC database. Needs `WFC_LEADERBOARDS_ADDR`/`_KEY` and `WFC_CORE_ADDRESS`/`_KEY`; unset falls back to the game's own table.
+- The rankings-contract copy (`RANKINGS_ADDR`, `/internal/rankings/*`) is removed: the website reads `http://openpak-leaderboards:20210/t/mario-kart-wii`.
+- Only consoles linked to an account are ranked (the core ranks accounts).
+
 ## v0.4.3 - 2026-11-03
 
 - Internal `/internal/` polls are counted and summarised once a minute instead of logged per call (wfc-common v0.3.1).

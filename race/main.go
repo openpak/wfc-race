@@ -5,8 +5,6 @@ import (
 	"openpak/wfc-common/common"
 	"openpak/wfc-common/database"
 	"openpak/wfc-common/logging"
-	"openpak/wfc-race/internal/rankingsapi"
-	"os"
 )
 
 var (
@@ -24,7 +22,7 @@ func StartServer(reload bool) {
 	if err := db.EnsureMarioKartWiiGhostArchive(); err != nil {
 		logging.Error("RACE", "ghost archive schema:", err)
 	}
-	rankingsapi.Serve(os.Getenv("RANKINGS_ADDR"), "wfc", newRankingSource(dbStore{&db}))
+	startBoard(config)
 }
 
 func Shutdown() {
@@ -34,5 +32,12 @@ func Shutdown() {
 func RegisterHandlers(mux *http.ServeMux) {
 	mux.HandleFunc("POST /RaceService/NintendoRacingService.asmx", handleNintendoRacingServiceRequest)
 	mux.HandleFunc("GET /api/mkw/leaderboard", handleLeaderboardJSON)
-	mux.Handle("GET /api/mkw/v1/", newReadAPI(dbStore{&db}))
+	mux.Handle("GET /api/mkw/v1/", newReadAPI(readStoreFor()))
+}
+
+func readStoreFor() readStore {
+	if board == nil {
+		return dbStore{&db}
+	}
+	return coreStore{dbStore{&db}, board, &db}
 }
