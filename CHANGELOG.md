@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.1 - 2026-11-05
+
+- The leaderboards adapter reads the account from the local link cache first (link-first subjects, prds#139). Race serves only anonymous top-ten reads, so there is nothing to gate. Vendors wfc-common v0.8.0.
+
 ## v0.5.0 - 2026-11-04
 
 - Rankings now come from the neutral leaderboards core (wfc-common v0.4.0 `mkwboard`): the SOAP `GetTopTenRankings`, the JSON top ten and the `/api/mkw/v1` read API (OpenKart) read the core; the JSON shapes are unchanged. Ghost files and the ghost archive stay in the WFC database. Needs `WFC_LEADERBOARDS_ADDR`/`_KEY` and `WFC_CORE_ADDRESS`/`_KEY`; unset falls back to the game's own table.

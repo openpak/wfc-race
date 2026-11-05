@@ -82,8 +82,8 @@ func (c *Connection) LoginUserToGPCM(userId uint64, gsbrcd string, profileId uin
 		if ngDeviceId == 0 {
 			user.NgDeviceId = []uint32{}
 		}
-		user.UniqueNick = common.Base32Encode(userId) + gsbrcd
-		user.Email = user.UniqueNick + "@nds"
+		user.UniqueNick = DerivedNick(userId, gsbrcd)
+		user.Email = DerivedEmail(userId, gsbrcd)
 
 		// Create the GPCM account
 		err := c.CreateUser(&user)
@@ -99,10 +99,12 @@ func (c *Connection) LoginUserToGPCM(userId uint64, gsbrcd string, profileId uin
 		var lastName *string
 		var allowDefaultKeys bool
 
-		err := c.pool.QueryRow(c.ctx, GetUserProfileID, userId, gsbrcd).Scan(&user.ProfileId, &user.NgDeviceId, &user.Email, &user.UniqueNick, &firstName, &lastName, &user.OpenHost, &lastIPAddress, &allowDefaultKeys)
+		err := c.pool.QueryRow(c.ctx, GetUserProfileID, userId, gsbrcd).Scan(&user.ProfileId, &user.NgDeviceId, &firstName, &lastName, &user.OpenHost, &lastIPAddress, &allowDefaultKeys)
 		if err != nil {
 			return User{}, err
 		}
+
+		user.UniqueNick, user.Email = DerivedNick(userId, gsbrcd), DerivedEmail(userId, gsbrcd)
 
 		if defaultKey && !allowDefaultKeys && !common.GetConfig().AllowDefaultDolphinKeys {
 			return User{}, ErrProhibitedDeviceID
@@ -251,7 +253,7 @@ func (c *Connection) LoginUserToGameStats(userId uint64, gsbrcd string) (User, e
 	var lastIPAddress *string
 	var allowDefaultKeys bool
 
-	err := c.pool.QueryRow(c.ctx, GetUserProfileID, userId, gsbrcd).Scan(&user.ProfileId, &user.NgDeviceId, &user.Email, &user.UniqueNick, &firstName, &lastName, &user.OpenHost, &lastIPAddress, &allowDefaultKeys)
+	err := c.pool.QueryRow(c.ctx, GetUserProfileID, userId, gsbrcd).Scan(&user.ProfileId, &user.NgDeviceId, &firstName, &lastName, &user.OpenHost, &lastIPAddress, &allowDefaultKeys)
 	if err != nil {
 		return User{}, err
 	}
@@ -264,5 +266,6 @@ func (c *Connection) LoginUserToGameStats(userId uint64, gsbrcd string) (User, e
 		user.LastName = *lastName
 	}
 
+	user.UniqueNick, user.Email = DerivedNick(userId, gsbrcd), DerivedEmail(userId, gsbrcd)
 	return user, nil
 }

@@ -41,3 +41,6 @@ func (c *Connection) Close() {
 		c.pool.Close()
 	}
 }
+
+// Ready reports whether the connection has a pool (false for a zero Connection, as in tests).
+func (c *Connection) Ready() bool { return c != nil && c.pool != nil }

@@ -32,7 +32,7 @@ func startBoard(cfg common.Config) {
 		logging.Error("RACE", "account core dial:", err)
 		return
 	}
-	board = &mkwboard.Board{LB: lb, Links: links, CourseName: func(c int) string { return common.MarioKartWiiCourseId(c).Name() }}
+	board = &mkwboard.Board{LB: lb, Links: mkwboard.CachedLinker{DB: &db, Core: links}, CourseName: func(c int) string { return common.MarioKartWiiCourseId(c).Name() }}
 }
 
 // topTen is the ten best times of a course in a region (0 = worldwide).
